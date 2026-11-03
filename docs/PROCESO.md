@@ -139,3 +139,11 @@ Para no depender de capturas manuales se usó **Playwright** (navegador Chromium
 5. Se capturó `git log` (tag `antes-refactor` y commit final) y la comparación del `openapi.json` (idéntico).
 
 SonarQube no se pudo ejecutar aquí: la red del entorno bloquea Docker Hub y las descargas de SonarSource, y entrar a SonarQube exige tu contraseña. Queda como único pendiente obligatorio.
+
+## Paso 12 — Adicional 3: análisis VHS (rama `adicional-3-analisis-vhs`)
+
+- Se investigaron Vertical Slice (Bogard), Hexagonal / Ports & Adapters (Cockburn) y Screaming Architecture (Martin).
+- Se revisó qué facilita y qué dificulta adoptarla en el código actual, con referencias a archivos y métodos.
+- Escenario: venta por web y WhatsApp, pasarela de pagos, correo real y sincronización con ERP.
+- Conclusión: **adopción parcial** (Screaming + Vertical en la organización, puertos solo para integraciones externas) y solo cuando aparezca la primera integración real.
+- Documento: [`ADICIONAL_3_VHS.md`](ADICIONAL_3_VHS.md).
