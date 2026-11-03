@@ -1,7 +1,9 @@
+import hashlib
+import json
 from dataclasses import dataclass
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.order_pricing import OrderTotals, calculate_totals
@@ -56,8 +58,23 @@ class OrderService:
         with self.database.connect() as connection:
             return self._price(connection, data).totals.as_dict()
 
-    def create(self, data):
+    def create(self, data, idempotency_key=None):
+        """Crea un pedido. Con `idempotency_key`, devuelve (resultado, repetido).
+
+        Todo ocurre en una sola transacción BEGIN IMMEDIATE: la consulta de la clave,
+        la creación del pedido y el registro de la clave se confirman juntos o no se
+        confirma nada, y las peticiones concurrentes se serializan en SQLite.
+        """
         with self.database.connect() as connection:
+            request_hash = self._request_hash(data)
+            if idempotency_key is not None:
+                stored = connection.execute(
+                    "SELECT request_hash, response_json FROM idempotency_keys WHERE key = ?", (idempotency_key,),
+                ).fetchone()
+                if stored is not None:
+                    if stored["request_hash"] != request_hash:
+                        raise HTTPException(409, "La clave de idempotencia ya se usó con otro contenido")
+                    return json.loads(stored["response_json"]), True
             priced = self._price(connection, data)
             cursor = connection.execute(
                 """INSERT INTO orders(customer_id, customer_category, address, city, postal_code,
@@ -65,7 +82,13 @@ class OrderService:
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", self._order_values(data, priced),
             )
             self._insert_lines(connection, cursor.lastrowid, priced.lines)
-            return self._detail(connection, cursor.lastrowid)
+            result = self._detail(connection, cursor.lastrowid)
+            if idempotency_key is not None:
+                connection.execute(
+                    "INSERT INTO idempotency_keys(key, request_hash, order_id, response_json) VALUES (?, ?, ?, ?)",
+                    (idempotency_key, request_hash, result["id"], json.dumps(result)),
+                )
+            return result, False
 
     def replace(self, order_id, data):
         with self.database.connect() as connection:
@@ -116,6 +139,11 @@ class OrderService:
             )]
 
     # --- Pasos internos -------------------------------------------------------
+
+    @staticmethod
+    def _request_hash(data):
+        canonical = json.dumps(data.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode()).hexdigest()
 
     @staticmethod
     def _require_order(connection, order_id):
@@ -205,9 +233,19 @@ def quote_order(data: OrderInput, service: Service):
     return service.quote(data)
 
 
+IdempotencyKey = Annotated[
+    str | None,
+    Header(alias="Idempotency-Key", min_length=1, max_length=255,
+           description="Clave única elegida por el cliente para reintentar la creación sin duplicar el pedido."),
+]
+
+
 @router.post("", status_code=201)
-def create_order(data: OrderInput, service: Service):
-    return service.create(data)
+def create_order(data: OrderInput, service: Service, response: Response, idempotency_key: IdempotencyKey = None):
+    result, replayed = service.create(data, idempotency_key)
+    if replayed:
+        response.headers["Idempotent-Replayed"] = "true"
+    return result
 
 
 @router.get("")

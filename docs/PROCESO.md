@@ -139,3 +139,10 @@ Para no depender de capturas manuales se usó **Playwright** (navegador Chromium
 5. Se capturó `git log` (tag `antes-refactor` y commit final) y la comparación del `openapi.json` (idéntico).
 
 SonarQube no se pudo ejecutar aquí: la red del entorno bloquea Docker Hub y las descargas de SonarSource, y entrar a SonarQube exige tu contraseña. Queda como único pendiente obligatorio.
+
+## Paso 10 — Adicional 1: idempotencia (rama `adicional-1-idempotencia`)
+
+- Se creó una rama aparte porque el enunciado dice que los adicionales no forman parte de la implementación base.
+- Cabecera opcional `Idempotency-Key`; tabla `idempotency_keys`; todo dentro de la misma transacción `BEGIN IMMEDIATE`.
+- 9 pruebas nuevas (incluida una con 8 hilos concurrentes). 107 pruebas, 99,71 %.
+- Detalle del contrato y decisiones: [`ADICIONAL_1_IDEMPOTENCIA.md`](ADICIONAL_1_IDEMPOTENCIA.md).
