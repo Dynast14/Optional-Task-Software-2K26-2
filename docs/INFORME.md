@@ -27,9 +27,32 @@ Ver [`evidencias/recorrido_antes.txt`](evidencias/recorrido_antes.txt): subtotal
 
 Cada prueba usa una base temporal propia (`tmp_path`). Única línea sin cubrir: `main.py:38` (`uvicorn.run` dentro de `if __name__ == "__main__"`). No se excluyó código.
 
-## 3. SonarQube
+## 3. SonarQube y análisis estático
 
-Ver la sección *Pendientes para entregar* al final: el análisis debe ejecutarse en tu máquina (Docker + SonarScanner). El proyecto ya trae `sonar-project.properties` con clave `tienda-lab`.
+El análisis de **SonarQube debe ejecutarse en tu máquina** (Docker + SonarScanner): en el entorno usado no se pudo descargar la imagen `sonarqube:community` ni el servidor (red restringida), y el inicio de sesión de SonarQube requiere tu contraseña. El proyecto ya trae `sonar-project.properties` con clave `tienda-lab` (pasos en §7).
+
+Como **evidencia complementaria** (no reemplaza a SonarQube) se midió la complejidad ciclomática con `radon`:
+
+| Método | Antes | Después |
+| --- | --- | --- |
+| `OrderService.save` → `create` / `replace` | **C (15)** | A (1) / A (1) |
+| `OrderService.quote` | B (9) | A (1) |
+| Paso más complejo del servicio | `save` C (15) | `_price` A (5) |
+
+Capturas: [`capturas/complejidad_radon_antes.png`](capturas/complejidad_radon_antes.png), [`capturas/complejidad_radon_despues.png`](capturas/complejidad_radon_despues.png).
+
+## Capturas de evidencia
+
+Todas en [`docs/capturas/`](capturas/), tomadas automáticamente con Playwright sobre la app real (uvicorn) en cada revisión:
+
+| Evidencia | Antes (`antes-refactor`) | Después (`main`) |
+| --- | --- | --- |
+| Swagger — vista general | `swagger_00_antes_overview.png` | `swagger_00_despues_overview.png` |
+| Recorrido en Swagger (8 pasos: cliente, producto, cotizar, crear, confirmar, stock = 3, notificación, 409) | `swagger_01…08_*_antes.png` | `swagger_01…08_*_despues.png` |
+| pytest + cobertura en terminal | `pytest_cobertura_antes.png` | `pytest_cobertura_despues.png` |
+| Reporte HTML de cobertura | `htmlcov_antes.png` | `htmlcov_despues.png` |
+| Complejidad (radon) | `complejidad_radon_antes.png` | `complejidad_radon_despues.png` |
+| Revisiones git y contrato OpenAPI idéntico | `git_revisiones_y_contrato.png` | |
 
 ---
 
@@ -218,4 +241,4 @@ sonar-scanner      # con SONAR_HOST_URL y SONAR_TOKEN en variables de entorno (v
 - `OrderService` sigue lanzando `HTTPException`: se podría introducir excepciones de dominio (`OrderNotFound`, `OrderNotPending`, `OutOfStock`) traducidas a HTTP en el router. No se hizo para no ampliar el alcance.
 - `products.py` y `customers.py` mantienen SQL directo en las rutas con duplicación menor.
 - El método `OrderService.list` sombrea el nombre `list` de Python (se mantuvo por compatibilidad con el original; SonarQube podría reportarlo).
-- **Pendientes para entregar (requieren tu máquina):** capturas de Swagger, de pytest/cobertura (`htmlcov/index.html`) y del análisis de SonarQube **antes** (`git checkout antes-refactor`) y **después**, con versión de SonarQube y perfil de calidad. El entorno donde se hizo este trabajo no tiene Docker ni SonarScanner.
+- **Pendiente para entregar (requiere tu máquina):** análisis de SonarQube **antes** (`git checkout antes-refactor`) y **después** (`main`) con capturas del resumen, cobertura global y hallazgos, más versión de SonarQube y perfil de calidad.

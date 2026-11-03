@@ -122,9 +122,20 @@ Verificaciones después de refactorizar:
 
 ## Qué te falta a ti (checklist)
 
-- [ ] Capturas de Swagger con el recorrido (o adjunta `evidencias/recorrido_*.txt`).
-- [ ] Captura de `htmlcov/index.html` antes y después.
-- [ ] SonarQube antes (`antes-refactor`) y después (`main`) con capturas, versión y perfil de calidad.
-- [ ] Guardar las capturas en `docs/capturas/` y enlazarlas en `INFORME.md`.
+- [x] Capturas de Swagger con el recorrido (hecho, Paso 9).
+- [x] Captura de pytest y de `htmlcov/index.html` antes y después (hecho, Paso 9).
+- [ ] SonarQube antes (`antes-refactor`) y después (`main`) con capturas, versión y perfil de calidad → guardarlas en `docs/capturas/sonarqube_*`.
 - [ ] `git push` (y `git push origin antes-refactor` para subir el tag).
 - [ ] (Opcional) Adicionales 1, 2 o 3.
+
+## Paso 9 — Capturas automáticas
+
+Para no depender de capturas manuales se usó **Playwright** (navegador Chromium automatizado):
+
+1. Se levantó la app con `uvicorn` en cada revisión (`antes-refactor` y `main`) con una base nueva.
+2. En Swagger (`/docs`) se ejecutó el recorrido completo con **Try it out → Execute** y se capturó cada operación con su respuesta (201, 200 y el 409 final).
+3. Se capturó la salida de `pytest --cov` y el reporte `htmlcov/index.html`.
+4. Se agregó `radon` (complejidad ciclomática) como evidencia complementaria: `save` pasó de **C (15)** a métodos de complejidad **A (1)**.
+5. Se capturó `git log` (tag `antes-refactor` y commit final) y la comparación del `openapi.json` (idéntico).
+
+SonarQube no se pudo ejecutar aquí: la red del entorno bloquea Docker Hub y las descargas de SonarSource, y entrar a SonarQube exige tu contraseña. Queda como único pendiente obligatorio.
