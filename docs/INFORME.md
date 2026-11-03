@@ -242,3 +242,15 @@ sonar-scanner      # con SONAR_HOST_URL y SONAR_TOKEN en variables de entorno (v
 - `products.py` y `customers.py` mantienen SQL directo en las rutas con duplicación menor.
 - El método `OrderService.list` sombrea el nombre `list` de Python (se mantuvo por compatibilidad con el original; SonarQube podría reportarlo).
 - **Pendiente para entregar (requiere tu máquina):** análisis de SonarQube **antes** (`git checkout antes-refactor`) y **después** (`main`) con capturas del resumen, cobertura global y hallazgos, más versión de SonarQube y perfil de calidad.
+
+---
+
+## 9. Adicionales (cada uno en su propia rama)
+
+| Adicional | Rama | Resultado | Documento |
+| --- | --- | --- | --- |
+| 1. Idempotencia en `POST /orders` | `adicional-1-idempotencia` | 107 pruebas, 99,71 % | `ADICIONAL_1_IDEMPOTENCIA.md` (en esa rama) |
+| 2. Cola y DLQ para notificaciones | `adicional-2-cola-dlq` | 111 pruebas, 99,78 % | `ADICIONAL_2_COLA_DLQ.md` (en esa rama) |
+| 3. Análisis de arquitectura VHS | `adicional-3-analisis-vhs` | Conclusión: adopción parcial | `ADICIONAL_3_VHS.md` (en esa rama) |
+
+Los adicionales son independientes entre sí y no forman parte de la implementación base (`main`), como pide el enunciado.

@@ -139,3 +139,15 @@ Para no depender de capturas manuales se usó **Playwright** (navegador Chromium
 5. Se capturó `git log` (tag `antes-refactor` y commit final) y la comparación del `openapi.json` (idéntico).
 
 SonarQube no se pudo ejecutar aquí: la red del entorno bloquea Docker Hub y las descargas de SonarSource, y entrar a SonarQube exige tu contraseña. Queda como único pendiente obligatorio.
+
+## Paso 13 — Ramas de los adicionales
+
+| Rama | Contenido |
+| --- | --- |
+| `main` | Trabajo obligatorio refactorizado + informe + capturas |
+| `antes-refactor` (tag) | Código original + pruebas ampliadas |
+| `adicional-1-idempotencia` | Pasos 10 y capturas `adicional_1_*` |
+| `adicional-2-cola-dlq` | Paso 11 y capturas `adicional_2_*` |
+| `adicional-3-analisis-vhs` | Paso 12 |
+
+Para subir todo: `git push origin main adicional-1-idempotencia adicional-2-cola-dlq adicional-3-analisis-vhs --tags`.
