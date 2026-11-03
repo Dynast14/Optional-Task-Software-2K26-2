@@ -60,3 +60,71 @@ Salida: [`evidencias/pytest_antes.txt`](evidencias/pytest_antes.txt).
 ```bash
 uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=80
 ```
+
+## Paso 3 — Congelar el estado previo (commit + tag)
+
+```bash
+git add -A
+git commit -m "test: ampliar pruebas unitarias y de integración (99% cobertura) antes de refactorizar"
+git tag -a antes-refactor -m "Estado previo a la refactorización"
+```
+
+Commit `52ec14a`, tag **`antes-refactor`**. Esta es la *revisión inicial* que pide el enunciado (código original + pruebas).
+
+## Paso 4 — SonarQube (no se pudo ejecutar aquí)
+
+La VM donde se trabajó **no tiene Docker ni SonarScanner**, así que este paso queda para ti en Windows:
+
+1. `docker compose up -d` → abrir http://localhost:9000 (admin/admin, cambiar contraseña).
+2. Crear proyecto local `tienda-lab`, generar token.
+3. `git checkout antes-refactor` → correr pytest (genera `coverage.xml`) → `sonar-scanner` → **capturas del análisis inicial**.
+4. `git checkout main` → pytest → `sonar-scanner` → **capturas del análisis final**.
+5. Anotar versión de SonarQube y perfil de calidad (Sonar way). Mirar **cobertura global**, no la de código nuevo.
+
+## Paso 5 — Identificar code smells
+
+Se leyeron los métodos de `OrderService` buscando repetición, tamaño, parámetros y condicionales. Resultado (detalle en `INFORME.md` §4):
+
+1. **Duplicated Code** — cálculo de precio repetido en `save` (44–64) y `quote` (97–116); búsqueda + 404 repetida 4 veces.
+2. **Long Method** — `save` (33–90), 58 líneas mezclando validación, reglas y SQL.
+3. **Long Parameter List + Flag Argument** — `save(customer_id, address, city, postal_code, shipping, items, order_id=None)`.
+4. **Switch Statements / números mágicos** — `if/elif` sobre categoría y envío con 10, 15, 10_000, 1_000, 2_500; estados como strings sueltos.
+
+## Paso 6 — Refactorizar
+
+Cambios (detalle con antes/después en `INFORME.md` §5):
+
+1. **Extract Function / Move Function** → nuevo `app/order_pricing.py` con `discount_cents`, `shipping_cents`, `calculate_totals`; métodos privados `_price`, `_require_order`, `_require_pending`, `_detail`, `_insert_lines`, `_deduct_stock`, `_notify_confirmation`, `_set_status`.
+2. **Replace Magic Number with Symbolic Constant + tabla de búsqueda** → `DISCOUNT_PERCENT_BY_CATEGORY`, `SHIPPING_COST_CENTS`, `FREE_STANDARD_SHIPPING_FROM_CENTS`, `PENDING/CONFIRMED/CANCELLED`.
+3. **Introduce Parameter Object + Remove Flag Argument** → `save(...)` se dividió en `create(data)` y `replace(order_id, data)`; rutas usan `Depends(order_service)`.
+4. (extra) **Introduce Value Object** → `OrderTotals` y `PricedOrder`.
+
+Verificaciones después de refactorizar:
+
+| Verificación | Resultado |
+| --- | --- |
+| Las 84 pruebas previas, **sin tocarlas** | ✅ pasan |
+| Pruebas unitarias nuevas de `order_pricing.py` | ✅ 14 nuevas → 98 en total |
+| Cobertura | ✅ 99,69 % ([`evidencias/pytest_despues.txt`](evidencias/pytest_despues.txt)) |
+| `openapi.json` antes vs. después | ✅ idéntico (mismo contrato HTTP) |
+| Recorrido del README con `curl` | ✅ idéntico ([`evidencias/recorrido_despues.txt`](evidencias/recorrido_despues.txt)) |
+
+## Paso 7 — Diagramas de clases
+
+- Fuente Mermaid: `docs/diagramas/clases_inicial.mmd` y `clases_final.mmd`.
+- Exportados a SVG y PNG con `mmdc` (Mermaid CLI): `mmdc -i clases_final.mmd -o clases_final.svg -b white`.
+- Solo clases reales; funciones y routers aparecen como notas.
+
+## Paso 8 — Informe y entrega
+
+- `docs/INFORME.md`: smells, técnicas, antes/después, comandos, limitaciones.
+- Commit final sobre `main`. No se suben `.venv`, `data/`, `coverage.xml`, `htmlcov/` (ya están en `.gitignore`).
+
+## Qué te falta a ti (checklist)
+
+- [ ] Capturas de Swagger con el recorrido (o adjunta `evidencias/recorrido_*.txt`).
+- [ ] Captura de `htmlcov/index.html` antes y después.
+- [ ] SonarQube antes (`antes-refactor`) y después (`main`) con capturas, versión y perfil de calidad.
+- [ ] Guardar las capturas en `docs/capturas/` y enlazarlas en `INFORME.md`.
+- [ ] `git push` (y `git push origin antes-refactor` para subir el tag).
+- [ ] (Opcional) Adicionales 1, 2 o 3.
