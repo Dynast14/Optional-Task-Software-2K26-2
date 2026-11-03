@@ -27,19 +27,50 @@ Ver [`evidencias/recorrido_antes.txt`](evidencias/recorrido_antes.txt): subtotal
 
 Cada prueba usa una base temporal propia (`tmp_path`). Única línea sin cubrir: `main.py:38` (`uvicorn.run` dentro de `if __name__ == "__main__"`). No se excluyó código.
 
-## 3. SonarQube y análisis estático
+## 3. SonarQube
 
-El análisis de **SonarQube debe ejecutarse en tu máquina** (Docker + SonarScanner): en el entorno usado no se pudo descargar la imagen `sonarqube:community` ni el servidor (red restringida), y el inicio de sesión de SonarQube requiere tu contraseña. El proyecto ya trae `sonar-project.properties` con clave `tienda-lab` (pasos en §7).
+| Dato | Valor |
+| --- | --- |
+| Versión | SonarQube **Community Build v26.10.0.133078** (Docker, `compose.yaml`) |
+| Perfil de calidad (Python) | **Sonar way core** (por defecto, 232 reglas activas) |
+| Quality Gate | **Sonar way** |
+| Escáner | `sonarsource/sonar-scanner-cli` en Docker, con `sonar-project.properties` del repositorio |
 
-Como **evidencia complementaria** (no reemplaza a SonarQube) se midió la complejidad ciclomática con `radon`:
+Cobertura de **todo el código** (pestaña *Overall Code*, no *New Code*):
+
+| Métrica | Antes (`antes-refactor`) | Después (`main`) |
+| --- | --- | --- |
+| Quality Gate | ✅ Passed | ✅ Passed |
+| Cobertura global | **99,7 %** (303 líneas a cubrir, 1 sin cubrir) | **99,7 %** (325 líneas a cubrir, 1 sin cubrir) |
+| Bugs / vulnerabilidades / code smells | 0 / 0 / 0 | 0 / 0 / 0 |
+| Duplicación | 0,0 % | 0,0 % |
+| Complejidad ciclomática | 69 | 68 |
+| **Complejidad cognitiva** | **55** | **25** |
+| Líneas de código | 393 | 402 |
+
+**Interpretación de los hallazgos:** SonarQube no reportó ningún code smell en ninguna de las dos versiones, aunque el código inicial sí tenía los cuatro smells de diseño documentados en §4 (código duplicado, método largo, lista larga de parámetros con bandera y condicionales con números mágicos). Esto confirma lo que advierte el enunciado: esos smells **no aparecen como hallazgos automáticos** con el perfil *Sonar way core*, porque las reglas no comparan bloques duplicados de pocas líneas dentro de un mismo archivo ni miden el diseño de la firma de un método. Donde la mejora sí se ve en SonarQube es en la **complejidad cognitiva, que bajó de 55 a 25 (−55 %)**, sobre todo por dividir `OrderService.save` y quitar las cadenas `if/elif`. La única línea sin cubrir es `main.py:38` (`uvicorn.run` dentro de `if __name__ == "__main__"`).
+
+Capturas:
+
+| | Antes | Después |
+| --- | --- | --- |
+| Resumen y Quality Gate | `sonarqube_antes_1_resumen.jpg` | `sonarqube_despues_1_resumen.jpg` |
+| Cobertura global (Overall Code) | `sonarqube_antes_2_cobertura_global.jpg` | `sonarqube_despues_2_cobertura_global.jpg` |
+| Cobertura por archivo | `sonarqube_antes_3_cobertura_por_archivo.jpg` | `sonarqube_despues_3_cobertura_por_archivo.jpg` |
+| Hallazgos (0) y versión de SonarQube | `sonarqube_antes_4_hallazgos_y_version.jpg` | `sonarqube_despues_5_hallazgos_y_version.jpg` |
+| Perfil de calidad | `sonarqube_antes_5_perfil_calidad.jpg` | (mismo perfil) |
+| Complejidad cognitiva por archivo | — | `sonarqube_despues_4_complejidad_cognitiva.jpg` |
+| Historial de análisis | `sonarqube_historial_actividad.jpg` | |
+
+**Nota técnica:** con el escáner en Docker, SonarQube no pudo resolver `main.py` dentro de `coverage.xml` (aviso *"Cannot resolve the file path 'main.py'"* y cobertura de 92 %). Se corrigió reescribiendo las rutas del reporte a `/usr/src/...` antes de analizar; la cobertura real es la misma que muestra pytest.
+
+Como evidencia complementaria se midió también la complejidad con `radon`:
 
 | Método | Antes | Después |
 | --- | --- | --- |
 | `OrderService.save` → `create` / `replace` | **C (15)** | A (1) / A (1) |
 | `OrderService.quote` | B (9) | A (1) |
 | Paso más complejo del servicio | `save` C (15) | `_price` A (5) |
-
-Capturas: [`capturas/complejidad_radon_antes.png`](capturas/complejidad_radon_antes.png), [`capturas/complejidad_radon_despues.png`](capturas/complejidad_radon_despues.png).
 
 ## Capturas de evidencia
 
@@ -230,10 +261,11 @@ uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-report=html
 # estado previo a la refactorización
 git checkout antes-refactor && uv run pytest --cov --cov-fail-under=80 && git checkout main
 
-# SonarQube (requiere Docker y SonarScanner CLI)
+# SonarQube (requiere Docker)
 docker compose up -d
-# crear proyecto "tienda-lab" en http://localhost:9000, generar token y luego:
-sonar-scanner      # con SONAR_HOST_URL y SONAR_TOKEN en variables de entorno (ver README)
+# crear proyecto local "tienda-lab" en http://localhost:9000 y generar un token; luego, en PowerShell:
+$env:SONAR_TOKEN = Read-Host "Token de SonarQube"
+docker run --rm -e SONAR_HOST_URL="http://host.docker.internal:9000" -e SONAR_TOKEN=$env:SONAR_TOKEN -v "${PWD}:/usr/src" sonarsource/sonar-scanner-cli
 ```
 
 ## 8. Limitaciones pendientes
@@ -241,7 +273,7 @@ sonar-scanner      # con SONAR_HOST_URL y SONAR_TOKEN en variables de entorno (v
 - `OrderService` sigue lanzando `HTTPException`: se podría introducir excepciones de dominio (`OrderNotFound`, `OrderNotPending`, `OutOfStock`) traducidas a HTTP en el router. No se hizo para no ampliar el alcance.
 - `products.py` y `customers.py` mantienen SQL directo en las rutas con duplicación menor.
 - El método `OrderService.list` sombrea el nombre `list` de Python (se mantuvo por compatibilidad con el original; SonarQube podría reportarlo).
-- **Pendiente para entregar (requiere tu máquina):** análisis de SonarQube **antes** (`git checkout antes-refactor`) y **después** (`main`) con capturas del resumen, cobertura global y hallazgos, más versión de SonarQube y perfil de calidad.
+- Las rutas de `coverage.xml` se ajustaron a mano para el escáner en Docker (ver §3); con `sonar-scanner` instalado localmente no hace falta.
 
 ---
 

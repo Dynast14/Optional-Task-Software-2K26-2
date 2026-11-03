@@ -124,7 +124,7 @@ Verificaciones después de refactorizar:
 
 - [x] Capturas de Swagger con el recorrido (hecho, Paso 9).
 - [x] Captura de pytest y de `htmlcov/index.html` antes y después (hecho, Paso 9).
-- [ ] SonarQube antes (`antes-refactor`) y después (`main`) con capturas, versión y perfil de calidad → guardarlas en `docs/capturas/sonarqube_*`.
+- [x] SonarQube antes y después con capturas, versión y perfil de calidad (Paso 14).
 - [ ] `git push` (y `git push origin antes-refactor` para subir el tag).
 - [ ] (Opcional) Adicionales 1, 2 o 3.
 
@@ -151,3 +151,12 @@ SonarQube no se pudo ejecutar aquí: la red del entorno bloquea Docker Hub y las
 | `adicional-3-analisis-vhs` | Paso 12 |
 
 Para subir todo: `git push origin main adicional-1-idempotencia adicional-2-cola-dlq adicional-3-analisis-vhs --tags`.
+
+## Paso 14 — SonarQube antes y después
+
+1. SonarQube levantado en Windows con `docker compose up -d`; proyecto local `tienda-lab` y token creados en la interfaz.
+2. `coverage.xml` generado para `antes-refactor`; el escáner se ejecutó con `sonarsource/sonar-scanner-cli` en Docker.
+3. Primer análisis: aviso *"Cannot resolve the file path 'main.py'"* y cobertura 92 %. Se reescribieron las rutas del reporte a `/usr/src/...` y se volvió a analizar: **99,7 %**, sin avisos.
+4. Capturas del análisis inicial (extensión de Claude en Chrome): resumen, cobertura global, cobertura por archivo, hallazgos con versión y perfil de calidad.
+5. Se cambió a `main`, se regeneró `coverage.xml` y se volvió a analizar: **99,7 %**, 0 hallazgos, **complejidad cognitiva 55 → 25**.
+6. Capturas del análisis final e historial de análisis.
