@@ -73,3 +73,16 @@ Las pruebas usan un reloj falso (`FakeClock`) para avanzar el tiempo sin esperar
 Dos pruebas existentes que verificaban la notificación inmediatamente después de confirmar se adaptaron para procesar la cola primero: es un **cambio de comportamiento intencional** de este adicional, no una regresión.
 
 Resultado: **111 pruebas, 99,78 % de cobertura**.
+
+## Evidencia
+
+- Demostración con la API real (cola pendiente, 3 rondas del worker con espera, DLQ, entregas sin duplicados, reprocesamiento): [`capturas/adicional_2_demo_api.png`](capturas/adicional_2_demo_api.png) · texto: [`evidencias/adicional_2_demo_api.txt`](evidencias/adicional_2_demo_api.txt)
+- Pruebas y cobertura: [`capturas/adicional_2_pytest_cobertura.png`](capturas/adicional_2_pytest_cobertura.png)
+
+Para reproducir la demostración sin el worker en segundo plano:
+
+```bash
+git checkout adicional-2-cola-dlq
+LAB_WORKER=0 NOTIFY_BASE_DELAY=1 uv run main.py
+# crear clientes con correos ana@…, luis+temporal2@…, eva+siempre@…, confirmar pedidos y llamar a POST /notifications/process
+```
