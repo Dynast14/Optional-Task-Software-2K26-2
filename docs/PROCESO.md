@@ -139,3 +139,11 @@ Para no depender de capturas manuales se usó **Playwright** (navegador Chromium
 5. Se capturó `git log` (tag `antes-refactor` y commit final) y la comparación del `openapi.json` (idéntico).
 
 SonarQube no se pudo ejecutar aquí: la red del entorno bloquea Docker Hub y las descargas de SonarSource, y entrar a SonarQube exige tu contraseña. Queda como único pendiente obligatorio.
+
+## Paso 11 — Adicional 2: cola y DLQ (rama `adicional-2-cola-dlq`)
+
+- Confirmar encola un mensaje en `notification_queue` dentro de la misma transacción; un worker en un hilo lo procesa.
+- Reintentos (máximo 3, espera exponencial), DLQ con causa, reprocesamiento explícito, lease para recuperar mensajes en `processing`, efecto único por `message_id`.
+- Fallos simulados de forma reproducible con el correo del cliente (`+temporal2`, `+siempre`, `+permanente`).
+- 14 pruebas nuevas con reloj falso. 111 pruebas, 99,78 %.
+- Detalle: [`ADICIONAL_2_COLA_DLQ.md`](ADICIONAL_2_COLA_DLQ.md).

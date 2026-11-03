@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.notifications import enqueue
 from app.order_pricing import OrderTotals, calculate_totals
 
 
@@ -181,10 +182,7 @@ class OrderService:
     def _notify_confirmation(connection, order):
         customer = connection.execute("SELECT * FROM customers WHERE id = ?", (order["customer_id"],)).fetchone()
         message = f"Pedido {order['id']} confirmado. Total: {order['total_cents']} centavos."
-        connection.execute(
-            "INSERT INTO notifications(order_id, recipient, message) VALUES (?, ?, ?)",
-            (order["id"], customer["email"], message),
-        )
+        enqueue(connection, order["id"], customer["email"], message)  # la entrega la hace el worker
         return message
 
     @staticmethod

@@ -6,6 +6,17 @@ from app.database import Database
 from main import create_app
 
 
+@pytest.fixture(autouse=True)
+def no_background_worker(monkeypatch):
+    """Las pruebas procesan la cola explícitamente para ser deterministas."""
+    monkeypatch.setenv("LAB_WORKER", "0")
+
+
+def drain_notifications(client):
+    from app.notifications import NotificationWorker
+    return NotificationWorker(client.app.state.database).drain()
+
+
 @pytest.fixture
 def client(tmp_path):
     with TestClient(create_app(tmp_path / "test.sqlite3")) as session:

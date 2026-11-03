@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import create_app
-from tests.conftest import create_customer, create_product, order_payload
+from tests.conftest import create_customer, create_product, drain_notifications, order_payload
 
 
 @pytest.fixture
@@ -124,6 +124,7 @@ def test_confirm_creates_notification_for_customer(setup):
     client, customer, _, payload = setup
     order = client.post("/orders", json=payload).json()
     client.post(f"/orders/{order['id']}/confirm")
+    drain_notifications(client)  # adicional 2: entrega asíncrona
     notifications = client.get(f"/orders/{order['id']}/notifications").json()
     assert len(notifications) == 1
     assert notifications[0]["recipient"] == customer["email"]
