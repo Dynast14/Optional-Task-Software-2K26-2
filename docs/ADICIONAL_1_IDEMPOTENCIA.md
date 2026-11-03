@@ -51,3 +51,8 @@ git checkout adicional-1-idempotencia
 uv run pytest --cov --cov-fail-under=80
 curl -X POST localhost:8000/orders -H "Content-Type: application/json" -H "Idempotency-Key: pedido-123" -d @pedido.json
 ```
+
+## Evidencia
+
+- Demostración con la API real (crear, reintentar, conflicto, listado, sin cabecera): [`capturas/adicional_1_demo_api.png`](capturas/adicional_1_demo_api.png) · texto: [`evidencias/adicional_1_demo_api.txt`](evidencias/adicional_1_demo_api.txt)
+- Pruebas y cobertura: [`capturas/adicional_1_pytest_cobertura.png`](capturas/adicional_1_pytest_cobertura.png)
